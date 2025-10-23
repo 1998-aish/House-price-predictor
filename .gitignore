@@ -1,0 +1,8 @@
+# ignore trained model and virtual env
+house_price_model.joblib
+venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
