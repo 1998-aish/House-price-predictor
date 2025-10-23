@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
+import subprocess
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -12,19 +13,27 @@ st.set_page_config(page_title="House Price Predictor", layout="centered")
 
 MODEL_PATH = "house_price_model.joblib"
 
-def load_model(path=MODEL_PATH):
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Model file not found at {path}. Run train_model.py first.")
-    return joblib.load(path)
+def load_or_train_model(path=MODEL_PATH):
+    """
+    Try to load the trained model. 
+    If not found, train it automatically using train_model.py.
+    """
+    if os.path.exists(path):
+        st.info("Found trained model file.")
+        return joblib.load(path)
+    else:
+        st.warning("Model file not found. Training a new model (this will take ~30 seconds)...")
+        try:
+            # Run the training script
+            subprocess.run(["python", "train_model.py"], check=True)
+            st.success("Model trained successfully! Loading model...")
+            return joblib.load(path)
+        except Exception as e:
+            st.error(f" Failed to train model automatically: {e}")
+            st.stop()
 
-# Try to load the model and show a friendly message if it fails
-try:
-    model = load_model()
-except Exception as e:
-    st.title("House Price Predictor (Error)")
-    st.error(f"Failed to load model: {e}")
-    st.write("Fix: ensure house_price_model.joblib exists in the same folder and restart Streamlit.")
-    st.stop()
+# Load or train model
+model = load_or_train_model()
 
 # --- Now safe to use st.* calls for UI and evaluation ---
 
