@@ -12,25 +12,41 @@ from sklearn.metrics import mean_squared_error, r2_score
 st.set_page_config(page_title="House Price Predictor", layout="centered")
 
 MODEL_PATH = "house_price_model.joblib"
+CSV_PATH = "california_housing.csv"
+
+def lightweight_train(csv_path=CSV_PATH, model_path=MODEL_PATH):
+    """Train a small model quickly if no pre-trained model is found."""
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestRegressor
+    import joblib, time
+
+    if not os.path.exists(csv_path):
+        st.error(f"Dataset {csv_path} not found. Please upload it or commit it to your repo.")
+        st.stop()
+
+    st.info("Training a lightweight model (safe for Streamlit Cloud)...")
+    t0 = time.time()
+    df = pd.read_csv(csv_path)
+    target = "MedHouseVal"
+    X = df.drop(columns=[target])
+    y = df[target]
+
+    # smaller subset for faster training
+    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.9, random_state=42)
+    model = RandomForestRegressor(n_estimators=20, max_depth=8, random_state=42, n_jobs=-1)
+    model.fit(X_train, y_train)
+    joblib.dump(model, model_path)
+    st.success(f"Model trained and saved in {time.time()-t0:.1f}s!")
+    return model
 
 def load_or_train_model(path=MODEL_PATH):
-    """
-    Try to load the trained model. 
-    If not found, train it automatically using train_model.py.
-    """
+    """Try to load existing model, otherwise train a lightweight one."""
     if os.path.exists(path):
-        st.info("Found trained model file.")
+        st.info("✅ Found trained model file.")
         return joblib.load(path)
     else:
-        st.warning("Model file not found. Training a new model (this will take ~30 seconds)...")
-        try:
-            # Run the training script
-            subprocess.run(["python", "train_model.py"], check=True)
-            st.success("Model trained successfully! Loading model...")
-            return joblib.load(path)
-        except Exception as e:
-            st.error(f" Failed to train model automatically: {e}")
-            st.stop()
+        st.warning("⚠️ Model file not found.")
+        return lightweight_train()
 
 # Load or train model
 model = load_or_train_model()
