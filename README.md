@@ -42,3 +42,4 @@ Try it:
 ---
 
 ![App screenshot](assets/screenshot.png)
+![App screenshot](assets/screenshot1.png)
